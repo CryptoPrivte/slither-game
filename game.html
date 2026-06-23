@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>🐍 Slither 2D — Solana</title>
+<script src="https://unpkg.com/@solana/web3.js@1.95.3/lib/index.iife.min.js"></script>
+<script src="https://unpkg.com/@solana/spl-token@0.4.8/lib/index.iife.min.js"></script>
+<style>
+:root{--green:#34d058;--blue:#5d9dff;--gold:#f59e0b;--purple:#a855f7;--red:#ff3b3b;--bg:#05070f;}
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',system-ui,sans-serif;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:#e8eefc;overflow:hidden;height:100vh}
+.bgfx{position:fixed;inset:0;z-index:-1;background:radial-gradient(circle at 20% 30%,#1a1140 0%,transparent 45%),radial-gradient(circle at 80% 70%,#06243f 0%,transparent 45%),radial-gradient(circle at 50% 50%,#0a0e24 0%,#03040a 100%);animation:hue 18s linear infinite}
+@keyframes hue{from{filter:hue-rotate(0)}to{filter:hue-rotate(360deg)}}
+.screen{position:fixed;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;padding:20px;text-align:center;z-index:5;overflow-y:auto}
+h1{font-size:clamp(30px,7vw,58px);background:linear-gradient(90deg,#34d058,#5d9dff,#a855f7);-webkit-background-clip:text;background-clip:text;color:transparent;font-weight:900;letter-spacing:1px;text-shadow:0 0 40px rgba(93,157,255,.3);margin-bottom:6px}
+.sub{color:#8aa0c2;margin-bottom:22px;font-size:14px}
+.card{background:rgba(15,22,44,.85);backdrop-filter:blur(12px);border:1px solid rgba(93,157,255,.18);border-radius:20px;padding:24px;max-width:400px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.btn{display:block;width:100%;padding:15px;margin:9px 0;border:none;border-radius:14px;font-size:16px;font-weight:700;color:#fff;cursor:pointer;transition:.18s;box-shadow:0 6px 18px rgba(0,0,0,.35)}
+.btn:hover{transform:translateY(-2px);filter:brightness(1.1)}.btn:active{transform:translateY(0)}
+.b-green{background:linear-gradient(135deg,#16a34a,#34d058)}.b-blue{background:linear-gradient(135deg,#2563eb,#5d9dff)}
+.b-gold{background:linear-gradient(135deg,#d97706,#f59e0b)}.b-purple{background:linear-gradient(135deg,#7c3aed,#a855f7)}
+.b-orange{background:linear-gradient(135deg,#ea580c,#fb923c)}.b-gray{background:linear-gradient(135deg,#475569,#64748b)}
+.b-red{background:linear-gradient(135deg,#dc2626,#ef4444)}
+.wlt{display:flex;align-items:center;gap:10px;justify-content:center;background:rgba(255,255,255,.05);padding:13px;border-radius:12px;margin:8px 0;cursor:pointer;border:1px solid rgba(255,255,255,.08);transition:.15s}
+.wlt:hover{background:rgba(93,157,255,.12);border-color:var(--blue)}
+.wlt .ic{width:30px;height:30px;border-radius:8px;font-size:24px;display:flex;align-items:center;justify-content:center}
+.wlt b{flex:1;text-align:left}
+.pills{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin:14px 0}
+.pill{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:30px;padding:7px 14px;font-size:13px;font-weight:700;display:flex;align-items:center;gap:6px}
+.pill.coin{color:#fbbf24}.pill.csnk{color:#34d058}.pill.snk{color:#5d9dff}
+.small{font-size:12px;color:#8aa0c2}.ok{color:#34d058}.err{color:#f87171}
+.f{width:100%;padding:13px;margin:7px 0;border-radius:11px;border:1px solid rgba(93,157,255,.25);background:rgba(0,0,0,.3);color:#fff;font-size:15px}
+a{color:var(--blue)}
+#game{position:fixed;inset:0;display:none}#cv{display:block;background:#000;touch-action:none}
+.hud{position:fixed;top:10px;left:10px;display:flex;gap:8px;flex-wrap:wrap;z-index:10}
+.hbox{background:rgba(5,7,15,.8);border:1px solid rgba(93,157,255,.2);border-radius:10px;padding:7px 11px;font-size:13px;font-weight:700}
+#modeTag{position:fixed;top:10px;left:50%;transform:translateX(-50%);background:rgba(5,7,15,.85);border:1px solid var(--gold);color:var(--gold);padding:6px 14px;border-radius:20px;font-weight:800;font-size:13px;z-index:10}
+#lb{position:fixed;top:54px;right:10px;background:rgba(5,7,15,.82);border:1px solid rgba(93,157,255,.2);border-radius:12px;padding:10px 12px;font-size:12px;min-width:150px;z-index:10}
+#minimap{position:fixed;bottom:14px;right:14px;border:2px solid rgba(93,157,255,.3);border-radius:8px;z-index:10;background:#000}
+.row{display:flex;justify-content:space-between;gap:14px;padding:3px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+#topBtns{position:fixed;top:10px;right:170px;display:flex;gap:8px;z-index:11}
+.iconbtn{background:rgba(5,7,15,.85);border:1px solid rgba(93,157,255,.25);color:#fff;width:40px;height:40px;border-radius:10px;font-size:18px;cursor:pointer}
+#shopGrid{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin:14px 0;max-height:54vh;overflow-y:auto}
+.skin{background:rgba(0,0,0,.3);border:2px solid rgba(255,255,255,.08);border-radius:14px;padding:12px;position:relative}
+.skin.equipped{border-color:var(--green)}.skin.owned{border-color:var(--blue)}
+.skin .prev{width:46px;height:46px;border-radius:50%;margin:0 auto 8px;box-shadow:0 0 18px rgba(255,255,255,.15)}
+.skin .nm{font-size:13px;font-weight:700;margin-bottom:3px}.skin .pr{font-size:12px;margin-bottom:8px}
+.skin .pr.coin{color:#fbbf24}.skin .pr.token{color:#34d058}
+.skin button{width:100%;padding:8px;border:none;border-radius:9px;color:#fff;font-weight:700;font-size:12px;cursor:pointer}
+.tag{position:absolute;top:6px;right:6px;font-size:9px;padding:2px 6px;border-radius:6px;font-weight:800}
+.tag.eq{background:var(--green)}.tag.ow{background:var(--blue)}
+#pop{position:fixed;inset:0;background:rgba(0,0,0,.75);display:none;align-items:center;justify-content:center;z-index:50;padding:20px}
+#popcard{background:rgba(15,22,44,.98);border:1px solid rgba(93,157,255,.3);border-radius:18px;padding:24px;max-width:420px;width:100%;text-align:center;max-height:90vh;overflow-y:auto}
+.tabs{display:flex;gap:8px;margin-bottom:12px}
+.tabs button{flex:1;padding:9px;border:none;border-radius:10px;background:rgba(255,255,255,.07);color:#9fb2d4;font-weight:700;cursor:pointer}
+.tabs button.active{background:var(--blue);color:#fff}
+.floatTxt{position:fixed;font-weight:900;font-size:20px;z-index:30;pointer-events:none;text-shadow:0 2px 8px #000;animation:fl 1.1s ease-out forwards}
+@keyframes fl{to{transform:translateY(-60px);opacity:0}}
+.spin{display:inline-block;width:16px;height:16px;border:2px solid #fff3;border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;vertical-align:middle}
+@keyframes sp{to{transform:rotate(360deg)}}
+.ibox{background:rgba(93,157,255,.07);border:1px solid rgba(93,157,255,.2);border-radius:12px;padding:12px 14px;margin:10px 0;font-size:13px;text-align:left;line-height:1.9}
+.srow{display:flex;align-items:flex-start;gap:9px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.snum{background:var(--blue);color:#fff;border-radius:50%;width:20px;height:20px;min-width:20px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;margin-top:2px}
+</style>
+</head>
+<body>
+<div class="bgfx"></div>
+
+<div class="screen" id="connect" style="display:flex">
+  <h1>🐍 SLITHER 2D</h1>
+  <p class="sub">Săn mồi · Hạ địch · Kiếm token trên Solana</p>
+  <div class="card">
+    <p class="small" style="margin-bottom:12px">Kết nối ví để nhận thưởng và mua skin</p>
+    <div class="wlt" onclick="connectWallet('phantom')"><span class="ic">👻</span><b>Phantom</b><span class="small">Khuyên dùng</span></div>
+    <div class="wlt" onclick="connectWallet('okx')"><span class="ic">⭕</span><b>OKX Wallet</b><span class="small">Solana</span></div>
+    <p id="gateErr" class="small" style="min-height:18px;margin-top:10px"></p>
+    <p class="small" style="margin-top:14px;opacity:.5">— hoặc —</p>
+    <button class="btn b-gray" style="margin-top:8px;font-size:13px;padding:10px" onclick="playFree()">Chơi thử không cần ví</button>
+  </div>
+</div>
+
+<div class="screen" id="menu">
+  <h1 style="font-size:clamp(26px,6vw,46px)">🐍 SLITHER 2D</h1>
+  <p class="small" id="menuWho">🎮 Chơi miễn phí</p>
+  <div class="pills">
+    <span class="pill coin">🟠 <span id="menuCoin">0</span> Coin</span>
+    <span class="pill csnk">🟢 <span id="menuCSNK">0</span> cSNK</span>
+    <span class="pill snk">🔵 <span id="walletSNK">0</span> SNK</span>
+  </div>
+  <div class="card">
+    <button class="btn b-green"  onclick="startGame('online')">🎮 Map Online</button>
+    <button class="btn b-red"    onclick="startGame('1v1')">⚔️ Đấu 1 vs 1</button>
+    <button class="btn b-purple" onclick="openShop()">🛒 Cửa hàng Skin</button>
+    <button class="btn b-gold"   onclick="openLeaderboard()">🏆 Bảng xếp hạng</button>
+    <button class="btn b-blue"   onclick="openWithdraw()">💸 Rút SNK</button>
+    <button class="btn b-orange" onclick="openBuyToken()">💰 Mua SNK</button>
+  </div>
+</div>
+
+<div class="screen" id="shop">
+  <div class="card" style="max-width:480px">
+    <h1 style="font-size:30px">🛒 Cửa hàng</h1>
+    <p class="small">Coin: 🟠 <b id="shopCoin">0</b> &nbsp;·&nbsp; SNK ví: 🔵 <b id="shopSNK">0</b></p>
+    <div id="shopGrid"></div>
+    <button class="btn b-gray" onclick="closeShop()">← Về Menu</button>
+  </div>
+</div>
+
+<div id="game">
+  <canvas id="cv"></canvas>
+  <div id="modeTag">🎮 MAP ONLINE</div>
+  <div class="hud">
+    <div class="hbox">⭐ <span id="score">0</span></div>
+    <div class="hbox">💀 <span id="kills">0</span></div>
+    <div class="hbox">📏 <span id="length">0</span></div>
+    <div class="hbox" style="color:#fbbf24">🟠 <span id="hudCoin">0</span></div>
+    <div class="hbox" style="color:#34d058">🟢 <span id="hudCSNK">0</span></div>
+    <div class="hbox" style="color:#5d9dff">🔵 <span id="hudSNK">0</span></div>
+  </div>
+  <div id="topBtns">
+    <button class="iconbtn" id="muteBtn" onclick="toggleMute()">🔊</button>
+    <button class="iconbtn" onclick="backToMenu()">🏠</button>
+  </div>
+  <div id="lb"></div>
+  <canvas id="minimap" width="150" height="150"></canvas>
+</div>
+
+<div id="pop"><div id="popcard"></div></div>
+
+<script>
+// ===================== CẤU HÌNH =====================
+const CFG = {
+  SNK_MINT:  "H27xFyyt9ZMUAT3cyaeeX71vnZiZoSPPQiXxYqK3pump",
+  TREASURY:  "4M2rkqGeF6yJBCkT2QtFBYY5FhWffcF54t8gfDA4bf3Z",
+  DECIMALS:  6,
+  RPC:       "https://api.devnet.solana.com",
+  // ★ Dán URL Google Apps Script vào đây sau khi deploy (xem file HUONG_DAN_SETUP.txt)
+  GAS_URL:   "https://script.google.com/macros/s/AKfycbxqr4vX3O_lAbBIInddSJM5rqOQqlGQ3-2C0wqNBzVF-Wv5ys2G68lK5H-dgs2PtfPo/exec",
+};
+
+const { Connection, PublicKey, Transaction } = solanaWeb3;
+const conn = new Connection(CFG.RPC, "confirmed");
+
+// ===================== STATE =====================
+let S = {
+  wallet: null, provider: null,
+  coin:   +(localStorage.coin   || 0),
+  cSNK:   +(localStorage.cSNK   || 0),
+  snk:    0,
+  equipped: localStorage.equipped || "green",
+  owned:    JSON.parse(localStorage.owned || '["green"]'),
+  name:     localStorage.pname || ("Player" + Math.floor(Math.random()*9999)),
+  muted: false, mode: "online",
+};
+
+const SKINS = [
+  {id:"green",   nm:"Luc Co Ban", c:"#34d058", price:0,    cur:"coin"},
+  {id:"blue",    nm:"Xanh Bien",  c:"#5d9dff", price:200,  cur:"coin"},
+  {id:"orange",  nm:"Cam Lua",    c:"#fb923c", price:400,  cur:"coin"},
+  {id:"rainbow", nm:"Cau Vong",   c:"rainbow", price:1000, cur:"coin"},
+  {id:"gold",    nm:"Hoang Kim",  c:"#f59e0b", price:5,    cur:"token"},
+  {id:"void",    nm:"Hu Khong",   c:"#a855f7", price:10,   cur:"token"},
+];
+
+// ===================== AUDIO =====================
+let AC, bgGain, bgTimer, melStep=0;
+function initAudio(){
+  if(AC)return;
+  try{AC=new(window.AudioContext||window.webkitAudioContext)();bgGain=AC.createGain();bgGain.gain.value=0.12;bgGain.connect(AC.destination);startBGM();}catch(e){}
+}
+function beep(f,d=0.08,t="square",v=0.18){
+  if(!AC||S.muted)return;
+  const o=AC.createOscillator(),g=AC.createGain();
+  o.type=t;o.frequency.value=f;g.gain.value=v;o.connect(g);g.connect(AC.destination);
+  o.start();g.gain.exponentialRampToValueAtTime(0.0001,AC.currentTime+d);o.stop(AC.currentTime+d);
+}
+const MEL=[523,659,784,659,587,698,880,698,659,784,988,784,523,659,784,1046];
+function startBGM(){
+  clearInterval(bgTimer);
+  bgTimer=setInterval(()=>{
+    if(!AC||S.muted)return;
+    const f=MEL[melStep%MEL.length]/2;
+    const o=AC.createOscillator(),g=AC.createGain();
+    o.type="triangle";o.frequency.value=f;g.gain.value=0;
+    g.gain.linearRampToValueAtTime(.10,AC.currentTime+.03);
+    g.gain.exponentialRampToValueAtTime(.0001,AC.currentTime+.22);
+    o.connect(g);g.connect(bgGain);o.start();o.stop(AC.currentTime+.25);
+    if(melStep%4===0){const b=AC.createOscillator(),bg=AC.createGain();b.type="sine";b.frequency.value=f/2;bg.gain.value=.12;b.connect(bg);bg.connect(bgGain);b.start();bg.gain.exponentialRampToValueAtTime(.0001,AC.currentTime+.4);b.stop(AC.currentTime+.4);}
+    melStep++;
+  },200);
+}
+function toggleMute(){S.muted=!S.muted;document.getElementById('muteBtn').textContent=S.muted?"🔇":"🔊";}
+
+// ===================== WALLET =====================
+async function connectWallet(type){
+  const e=document.getElementById('gateErr');
+  e.innerHTML='<span class="small">Dang ket noi...</span>';
+  try{
+    let prov;
+    if(type==='phantom'){if(!window.solana||!window.solana.isPhantom)return need(e,'Phantom','https://phantom.app');prov=window.solana;}
+    else if(type==='okx'){prov=window.okxwallet?.solana;if(!prov)return need(e,'OKX Wallet','https://www.okx.com/web3');}
+    const r=await prov.connect();
+    S.provider=prov;S.wallet=r.publicKey.toString();
+    e.innerHTML='<span class="ok">Da ket noi</span>';
+    try{S.snk=await getSNKBal(S.wallet);}catch(_){}
+    setTimeout(gotoMenu,400);
+  }catch(err){e.innerHTML='<span class="err">Tu choi / loi ket noi</span>';}
+}
+function need(e,nm,url){e.innerHTML=`<span class="err">Khong tim thay ${nm}. <a href="${url}" target="_blank">Cai dat</a></span>`;}
+function playFree(){initAudio();S.wallet=null;S.provider=null;gotoMenu();}
+
+async function getSNKBal(owner){
+  const body={jsonrpc:"2.0",id:1,method:"getTokenAccountsByOwner",params:[owner,{mint:CFG.SNK_MINT},{encoding:"jsonParsed"}]};
+  const r=await fetch(CFG.RPC,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
+  const j=await r.json();let t=0;
+  (j.result?.value||[]).forEach(a=>t+=a.account.data.parsed.info.tokenAmount.uiAmount||0);
+  return t;
+}
+async function refreshSNK(){if(S.wallet){try{S.snk=await getSNKBal(S.wallet);}catch(e){}}}
+
+// ===================== NAV =====================
+function hideAll(){document.querySelectorAll('.screen').forEach(s=>s.style.display='none');document.getElementById('game').style.display='none';document.getElementById('pop').style.display='none';}
+async function gotoMenu(){
+  stopGame();hideAll();
+  document.getElementById('menu').style.display='flex';
+  document.getElementById('menuWho').textContent=S.wallet?("👛 "+S.wallet.slice(0,4)+"..."+S.wallet.slice(-4)):"🎮 Choi mien phi";
+  document.getElementById('menuCoin').textContent=S.coin;
+  document.getElementById('menuCSNK').textContent=S.cSNK.toFixed(2);
+  document.getElementById('walletSNK').textContent=S.snk.toFixed(2);
+  await refreshSNK();
+  document.getElementById('walletSNK').textContent=S.snk.toFixed(2);
+}
+function backToMenu(){closePop();gotoMenu();}
+
+// ===================== SHOP =====================
+function openShop(){renderShop();hideAll();document.getElementById('shop').style.display='flex';}
+function closeShop(){gotoMenu();}
+function renderShop(){
+  document.getElementById('shopCoin').textContent=S.coin;
+  document.getElementById('shopSNK').textContent=S.snk.toFixed(2);
+  const g=document.getElementById('shopGrid');g.innerHTML='';
+  SKINS.forEach(sk=>{
+    const owned=S.owned.includes(sk.id),eq=S.equipped===sk.id;
+    const bg=sk.c==="rainbow"?"conic-gradient(red,orange,yellow,lime,cyan,blue,violet,red)":sk.c;
+    let btn;
+    if(eq)       btn=`<button disabled style="background:#16a34a;opacity:.8">Dang dung</button>`;
+    else if(owned) btn=`<button style="background:#3b82f6" onclick="equipSkin('${sk.id}')">Trang bi</button>`;
+    else if(sk.cur==='coin') btn=`<button style="background:#ea580c" onclick="buyCoin('${sk.id}')">Mua ${sk.price} Coin</button>`;
+    else           btn=`<button style="background:#7c3aed" onclick="buyToken('${sk.id}')">Mua ${sk.price} SNK</button>`;
+    g.innerHTML+=`<div class="skin ${eq?'equipped':owned?'owned':''}">
+      ${eq?'<span class="tag eq">DUNG</span>':owned?'<span class="tag ow">CO</span>':''}
+      <div class="prev" style="background:${bg}"></div>
+      <div class="nm">${sk.nm}</div>
+      <div class="pr ${sk.cur==='coin'?'coin':'token'}">${sk.price===0?'Mien phi':sk.price+(sk.cur==='coin'?' Coin':' SNK')}</div>
+      ${btn}</div>`;
+  });
+}
+
+// --- Mua skin Coin (local, khong can vi) ---
+function buyCoin(id){
+  const sk=SKINS.find(s=>s.id===id);
+  if(S.coin<sk.price)
+    return popHTML(`<h2 style="margin-bottom:10px">Khong du Coin</h2>
+      <p class="small">Can <b>${sk.price} Coin</b>, ban co <b>${S.coin}</b>.</p>
+      <button class="btn b-gray" style="margin-top:12px" onclick="closePop()">Dong</button>`);
+  S.coin-=sk.price;S.owned.push(id);S.equipped=id;saveState();beep(880,.12);
+  closePop();renderShop();
+}
+
+// --- Mua skin Token: mo vi web3 thuc su, chuyen SNK on-chain ---
+async function buyToken(id){
+  const sk=SKINS.find(s=>s.id===id);
+
+  // Buoc 1: kiem tra vi
+  if(!S.wallet||!S.provider)
+    return popHTML(`<h2 style="margin-bottom:10px">Can ket noi vi</h2>
+      <p class="small" style="margin-bottom:14px">Ket noi vi Phantom hoac OKX de mua skin bang SNK.</p>
+      <button class="btn b-green" onclick="closePop();hideAll();document.getElementById('connect').style.display='flex'">Ket noi vi</button>
+      <button class="btn b-gray" onclick="closePop()">Huy</button>`);
+
+  // Buoc 2: kiem tra so du
+  popHTML(`<h2 style="margin-bottom:10px">Dang kiem tra so du...</h2><p><span class="spin"></span></p>`);
+  await refreshSNK();
+
+  if(S.snk<sk.price)
+    return popHTML(`<h2 style="margin-bottom:10px">Khong du SNK</h2>
+      <p class="small">Can <b>${sk.price} SNK</b> — vi: <b class="err">${S.snk.toFixed(4)}</b></p>
+      <button class="btn b-orange" style="margin-top:10px" onclick="closePop();openBuyToken()">Mua SNK</button>
+      <button class="btn b-gray" onclick="closePop()">Dong</button>`);
+
+  // Buoc 3: hien xac nhan truoc khi mo vi
+  popHTML(`
+    <h2 style="margin-bottom:12px">Xac nhan mua skin</h2>
+    <div class="ibox">
+      <div class="srow"><span class="snum">1</span><span>Skin: <b>${sk.nm}</b></span></div>
+      <div class="srow"><span class="snum">2</span><span>Gia: <b style="color:#34d058">${sk.price} SNK</b></span></div>
+      <div class="srow"><span class="snum">3</span><span>Vi nguoi dung: <b style="font-size:10px">${S.wallet.slice(0,8)}...${S.wallet.slice(-6)}</b></span></div>
+      <div class="srow"><span class="snum">4</span><span>Nhan token: <b style="font-size:10px">Dev Treasury</b></span></div>
+    </div>
+    <p class="small" style="color:#f59e0b;margin:10px 0">Vi Phantom/OKX se mo de ky giao dich</p>
+    <button class="btn b-purple" id="execBtn" onclick="execBuyToken('${id}')">Mo vi & Thanh toan</button>
+    <button class="btn b-gray" onclick="closePop()">Huy</button>`);
+}
+
+async function execBuyToken(id){
+  const sk=SKINS.find(s=>s.id===id);
+  const btn=document.getElementById('execBtn');
+  if(btn){btn.disabled=true;btn.innerHTML='<span class="spin"></span> Dang mo vi...';}
+  try{
+    // ★ Mo vi web3 thuc su — nguoi dung ky, tru SNK on-chain ve treasury
+    const sig=await transferSNK(CFG.TREASURY,sk.price);
+    S.owned.push(id);S.equipped=id;saveState();beep(1046,.14);
+    await refreshSNK();
+    popHTML(`<h2 style="margin-bottom:10px">Mua skin thanh cong!</h2>
+      <p class="small">Da chuyen <b>${sk.price} SNK</b> on-chain.</p>
+      <p class="small" style="margin:8px 0"><a href="https://solscan.io/tx/${sig}?cluster=devnet" target="_blank">Xem giao dich tren Solscan</a></p>
+      <button class="btn b-green" style="margin-top:12px" onclick="closePop();renderShop()">OK</button>`);
+  }catch(err){
+    popHTML(`<h2 style="margin-bottom:10px">Giao dich that bai</h2>
+      <p class="small">${err.message||"Bi tu choi hoac loi mang."}</p>
+      <button class="btn b-gray" style="margin-top:12px" onclick="closePop()">Dong</button>`);
+  }
+}
+function equipSkin(id){S.equipped=id;saveState();beep(660);renderShop();}
+
+// ===================== CHUYEN SPL TOKEN (vi nguoi dung -> treasury) =====================
+async function transferSNK(toAddr,uiAmt){
+  const sp=window.splToken;
+  if(!sp) throw new Error("Thu vien SPL Token chua tai xong. Thu lai.");
+  const mint=new PublicKey(CFG.SNK_MINT);
+  const owner=new PublicKey(S.wallet);
+  const dest=new PublicKey(toAddr);
+  const fromATA=await sp.getAssociatedTokenAddress(mint,owner);
+  const toATA=await sp.getAssociatedTokenAddress(mint,dest);
+  const tx=new Transaction();
+  const toInfo=await conn.getAccountInfo(toATA);
+  if(!toInfo) tx.add(sp.createAssociatedTokenAccountInstruction(owner,toATA,dest,mint));
+  const raw=BigInt(Math.round(uiAmt*10**CFG.DECIMALS));
+  tx.add(sp.createTransferInstruction(fromATA,toATA,owner,raw));
+  const {blockhash,lastValidBlockHeight}=await conn.getLatestBlockhash();
+  tx.recentBlockhash=blockhash;tx.feePayer=owner;
+  // ★ Day la buoc mo vi web3 (Phantom/OKX) cho nguoi dung ky
+  const signed=await S.provider.signTransaction(tx);
+  const sig=await conn.sendRawTransaction(signed.serialize());
+  await conn.confirmTransaction({signature:sig,blockhash,lastValidBlockHeight},"confirmed");
+  return sig;
+}
+
+// ===================== RUT SNK — GHI GOOGLE SHEETS (chi admin xem) =====================
+function openWithdraw(){
+  popHTML(`
+    <h2 style="margin-bottom:15px">💸 Rút SNK</h2>
+
+    <p class="small" style="margin-bottom:12px">
+      Nhập địa chỉ ví Solana và số lượng muốn rút.
+    </p>
+
+    <input
+      id="wdAddr"
+      class="f"
+      placeholder="Địa chỉ ví Solana"
+      value="${S.wallet || ''}"
+    >
+
+    <input
+      id="wdAmt"
+      class="f"
+      type="number"
+      min="1"
+      step="1"
+      placeholder="Số lượng cSNK muốn rút"
+    >
+
+    <div class="ibox">
+      🟢 Số dư hiện tại:
+      <b>${S.cSNK.toFixed(2)} cSNK</b>
+    </div>
+
+    <button class="btn b-green" onclick="doWithdraw()">
+      Gửi yêu cầu rút
+    </button>
+
+    <button class="btn b-gray" onclick="closePop()">
+      Hủy
+    </button>
+  `);
+}
+
+
+async function doWithdraw(){
+  const addr = document.getElementById("wdAddr").value.trim();
+  const amt = parseFloat(document.getElementById("wdAmt").value);
+
+  if(!addr) return alert("Vui lòng nhập địa chỉ ví");
+
+  try { new PublicKey(addr); }
+  catch { return alert("Địa chỉ ví Solana không hợp lệ"); }
+
+  if(!amt || amt <= 0) return alert("Số lượng không hợp lệ");
+  if(amt > S.cSNK) return alert("Không đủ cSNK");
+  if(amt < 10) return alert("Rút tối thiểu 10 cSNK");
+  if(amt > 1000) return alert("Rút tối đa 1000 cSNK mỗi lần");
+
+  try {
+    const payload = {
+      action: "withdraw",
+      player: S.name,
+      wallet: addr,
+      amount: amt,
+      csnk_balance: S.cSNK.toFixed(2),
+      timestamp: new Date().toLocaleString()
+    };
+
+    const res = await fetch(CFG.GAS_URL, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify(payload)
+    });
+
+    const json = await res.json();
+
+    if(json.success){
+      popHTML(`
+        <h2>✅ Đã gửi yêu cầu</h2>
+        <p class="small">Mã yêu cầu:</p>
+        <p style="font-size:12px;word-break:break-all;margin:10px 0;color:#34d058">
+          ${json.id}
+        </p>
+        <p class="small">Admin sẽ xử lý thủ công.</p>
+        <button class="btn b-green" onclick="closePop()">OK</button>
+      `);
+    } else {
+      alert("Lỗi: " + json.error);
+    }
+
+  } catch(err){
+    alert("Không thể gửi yêu cầu rút");
+  }
+}
+
+
+// ===================== MUA TOKEN =====================
+function openBuyToken(){
+  popHTML(`<h2 style="margin-bottom:8px">Mua SNK Token</h2>
+    <div class="ibox" style="font-size:11px;word-break:break-all;margin:8px 0">
+      <b>Contract:</b> <a href="https://pump.fun/coin/${CFG.SNK_MINT}" target="_blank">${CFG.SNK_MINT}</a>
+    </div>
+    <button class="btn b-purple" onclick="window.open('https://pump.fun/coin/${CFG.SNK_MINT}','_blank')">Mua tren Pump.fun</button>
+    <button class="btn b-blue" onclick="window.open('https://birdeye.so/solana/token/${CFG.SNK_MINT}','_blank')">Xem tren Birdeye</button>
+    <button class="btn b-gray" onclick="closePop()">Dong</button>`);
+}
+
+// ===================== LEADERBOARD =====================
+function getLB(map){
+  let lb=JSON.parse(localStorage['lb_'+map]||'[]');
+  if(lb.length<5){["DragonX","NoobMaster","SnakeKing","ProGamer","Lucky7","SolWhale","CryptoBoy","MrSnek"].forEach(n=>lb.push({name:n,score:Math.floor(Math.random()*4000)+500}));}
+  return lb.sort((a,b)=>b.score-a.score).slice(0,15);
+}
+function saveScore(map,score){
+  let lb=JSON.parse(localStorage['lb_'+map]||'[]');const i=lb.findIndex(x=>x.name===S.name);
+  if(i>=0){if(score>lb[i].score)lb[i].score=score;}else lb.push({name:S.name,score});
+  localStorage['lb_'+map]=JSON.stringify(lb);
+}
+function openLeaderboard(){
+  popHTML(`<h2 style="margin-bottom:10px">BANG XEP HANG</h2>
+    <div class="tabs"><button class="active" id="tabOn" onclick="switchLB('online')">Online</button><button id="tab1v1" onclick="switchLB('1v1')">1v1</button></div>
+    <div id="lbList" style="text-align:left;max-height:46vh;overflow-y:auto"></div>
+    <button class="btn b-gray" style="margin-top:12px" onclick="closePop()">Dong</button>`);
+  switchLB('online');
+}
+function switchLB(map){
+  document.getElementById('tabOn').classList.toggle('active',map==='online');
+  document.getElementById('tab1v1').classList.toggle('active',map==='1v1');
+  document.getElementById('lbList').innerHTML=getLB(map).map((p,i)=>{
+    const medal=i===0?'🥇':i===1?'🥈':i===2?'🥉':`<b style="color:#8aa0c2">#${i+1}</b>`;
+    const me=p.name===S.name?'style="color:var(--green);font-weight:800"':'';
+    return `<div class="row" ${me}><span>${medal} ${p.name}</span><b>${p.score}</b></div>`;
+  }).join('');
+}
+
+// ===================== POPUP =====================
+function popHTML(h){document.getElementById('popcard').innerHTML=h;document.getElementById('pop').style.display='flex';}
+function popMsg(t,b){popHTML(`<h2 style="margin-bottom:8px">${t}</h2><p class="small">${b}</p>`);}
+function closePop(){document.getElementById('pop').style.display='none';}
+function saveState(){localStorage.coin=S.coin;localStorage.cSNK=S.cSNK;localStorage.equipped=S.equipped;localStorage.owned=JSON.stringify(S.owned);localStorage.pname=S.name;}
+
+// ===================== GAME ENGINE =====================
+const cv=document.getElementById('cv'),ctx=cv.getContext('2d');
+const mini=document.getElementById('minimap'),mctx=mini.getContext('2d');
+let W=3600,H=3600,running=false,raf=null,player=null,foods=[],bots=[],score=0,kills=0,cam={x:0,y:0},mouse={x:0,y:0,active:false};
+function rndC(){return `hsl(${Math.random()*360},70%,60%)`;}
+function skinC(id){const s=SKINS.find(x=>x.id===id);return(s&&s.c!=="rainbow")?s.c:"#34d058";}
+function isRain(id){const s=SKINS.find(x=>x.id===id);return s&&s.c==="rainbow";}
+function makeBot(name){
+  const b={x:Math.random()*W,y:Math.random()*H,segs:[],angle:Math.random()*6.28,targetAngle:Math.random()*6.28,r:7+Math.random()*4,len:12+Math.floor(Math.random()*20),speed:2.4+Math.random()*1,color:rndC(),name,dead:false,retarget:0};
+  for(let i=0;i<b.len;i++)b.segs.push({x:b.x,y:b.y});return b;
+}
+function spawnFood(){foods.push({x:Math.random()*W,y:Math.random()*H,r:4+Math.random()*3,c:rndC()});}
+function startGame(mode){
+  S.mode=mode;initAudio();hideAll();
+  document.getElementById('game').style.display='block';
+  document.getElementById('modeTag').textContent=mode==='1v1'?'DAU 1 VS 1':'MAP ONLINE';
+  W=H=mode==='1v1'?2000:3600;resize();
+  player={x:W/2,y:H/2,segs:[],angle:0,r:8,len:14,speed:3.0,boost:false,name:S.name};
+  for(let i=0;i<player.len;i++)player.segs.push({x:player.x,y:player.y});
+  mouse={x:cv.width/2,y:cv.height/2,active:false};
+  foods=[];const nf=mode==='1v1'?220:480;for(let i=0;i<nf;i++)spawnFood();
+  bots=[];const nb=mode==='1v1'?1:11;
+  const bn=["DragonX","SnakeKing","ProGamer","NoobMaster","Lucky7","SolWhale","CryptoBoy","MrSnek","Viper","Anaconda","Cobra"];
+  for(let i=0;i<nb;i++)bots.push(makeBot(mode==='1v1'?'Doi thu':bn[i%bn.length]));
+  score=0;kills=0;running=true;cancelAnimationFrame(raf);loop();
+}
+function resize(){cv.width=innerWidth;cv.height=innerHeight;}
+addEventListener('resize',resize);
+cv.addEventListener('mousemove',e=>{mouse.x=e.clientX;mouse.y=e.clientY;mouse.active=true;});
+cv.addEventListener('touchmove',e=>{e.preventDefault();const t=e.touches[0];mouse.x=t.clientX;mouse.y=t.clientY;mouse.active=true;},{passive:false});
+cv.addEventListener('mousedown',()=>player&&(player.boost=true));
+cv.addEventListener('mouseup',()=>player&&(player.boost=false));
+cv.addEventListener('touchstart',()=>player&&(player.boost=true));
+cv.addEventListener('touchend',()=>player&&(player.boost=false));
+function loop(){if(!running)return;update();draw();raf=requestAnimationFrame(loop);}
+function turnTo(cur,tgt,max){let d=tgt-cur;while(d>Math.PI)d-=2*Math.PI;while(d<-Math.PI)d+=2*Math.PI;return cur+Math.max(-max,Math.min(max,d));}
+function update(){
+  if(!player)return;
+  if(mouse.active){const tx=mouse.x-cv.width/2,ty=mouse.y-cv.height/2;if(tx||ty)player.angle=turnTo(player.angle,Math.atan2(ty,tx),0.28);}
+  const sp=player.speed*(player.boost?1.8:1);
+  player.x=Math.max(player.r,Math.min(W-player.r,player.x+Math.cos(player.angle)*sp));
+  player.y=Math.max(player.r,Math.min(H-player.r,player.y+Math.sin(player.angle)*sp));
+  player.segs.unshift({x:player.x,y:player.y});while(player.segs.length>player.len)player.segs.pop();
+  cam.x=player.x;cam.y=player.y;
+  for(let i=foods.length-1;i>=0;i--){
+    if(Math.hypot(foods[i].x-player.x,foods[i].y-player.y)<player.r+foods[i].r+4){
+      foods.splice(i,1);player.len++;score+=10;S.coin++;S.cSNK+=0.5;beep(900,.05,"square",.12);spawnFood();
+    }
+  }
+  bots.forEach(b=>{
+    if(b.dead)return;b.retarget--;
+    if(S.mode==='1v1'){b.targetAngle=Math.atan2(player.y-b.y,player.x-b.x);}
+    else if(b.retarget<=0){let tgt=null,dm=1e9;for(const f of foods){const d=(f.x-b.x)**2+(f.y-b.y)**2;if(d<dm){dm=d;tgt=f;}}if(tgt)b.targetAngle=Math.atan2(tgt.y-b.y,tgt.x-b.x)+(Math.random()-.5)*.4;b.retarget=20+Math.floor(Math.random()*30);}
+    const mg=80;
+    if(b.x<mg)b.targetAngle=0;else if(b.x>W-mg)b.targetAngle=Math.PI;
+    if(b.y<mg)b.targetAngle=Math.PI/2;else if(b.y>H-mg)b.targetAngle=-Math.PI/2;
+    b.angle=turnTo(b.angle,b.targetAngle,.12);
+    b.x=Math.max(b.r,Math.min(W-b.r,b.x+Math.cos(b.angle)*b.speed));
+    b.y=Math.max(b.r,Math.min(H-b.r,b.y+Math.sin(b.angle)*b.speed));
+    b.segs.unshift({x:b.x,y:b.y});while(b.segs.length>b.len)b.segs.pop();
+  });
+  for(const b of bots){
+    if(b.dead)continue;let k=false;
+    for(let i=4;i<player.segs.length;i+=2){if(Math.hypot(b.x-player.segs[i].x,b.y-player.segs[i].y)<b.r+player.r){killBot(b);k=true;break;}}
+    if(k)continue;
+    for(let i=4;i<b.segs.length;i+=2){if(Math.hypot(player.x-b.segs[i].x,player.y-b.segs[i].y)<player.r+b.r){gameOver();return;}}
+  }
+  document.getElementById('score').textContent=score;
+  document.getElementById('kills').textContent=kills;
+  document.getElementById('length').textContent=player.len;
+  document.getElementById('hudCoin').textContent=S.coin;
+  document.getElementById('hudCSNK').textContent=S.cSNK.toFixed(1);
+  document.getElementById('hudSNK').textContent=S.snk.toFixed(2);
+  updateLB();
+}
+function killBot(b){
+  b.dead=true;kills++;score+=100;S.coin+=10;S.cSNK+=2;
+  floatText("+10 Coin +2 cSNK KILL!","#f59e0b");beep(1200,.12,"sawtooth",.2);saveState();
+  if(S.mode==='1v1'){setTimeout(winMatch,400);}
+  else{setTimeout(()=>{b.dead=false;b.x=Math.random()*W;b.y=Math.random()*H;b.segs=[];for(let i=0;i<b.len;i++)b.segs.push({x:b.x,y:b.y});},1500);}
+}
+function winMatch(){saveScore('1v1',score);stopGame();popHTML(`<h2>THANG 1v1!</h2><p class="small" style="margin:10px 0">Diem: <b>${score}</b></p><button class="btn b-green" onclick="closePop();startGame('1v1')">Choi lai</button><button class="btn b-gray" onclick="backToMenu()">Ve Menu</button>`);}
+function gameOver(){running=false;cancelAnimationFrame(raf);saveScore(S.mode==='1v1'?'1v1':'online',score);beep(200,.4,"sawtooth",.2);refreshSNK();popHTML(`<h2>GAME OVER</h2><p class="small" style="margin:10px 0">Diem: <b>${score}</b> · ${kills} kills</p><button class="btn b-green" onclick="closePop();startGame('${S.mode}')">Choi lai</button><button class="btn b-gray" onclick="backToMenu()">Ve Menu</button>`);}
+function stopGame(){running=false;if(raf){cancelAnimationFrame(raf);raf=null;}}
+function floatText(t,c){const d=document.createElement('div');d.className='floatTxt';d.textContent=t;d.style.color=c;d.style.left=(cv.width/2-40)+'px';d.style.top=(cv.height/2-40)+'px';document.body.appendChild(d);setTimeout(()=>d.remove(),1100);}
+function draw(){
+  if(!player)return;
+  const ox=cv.width/2-cam.x,oy=cv.height/2-cam.y;
+  ctx.fillStyle="#000";ctx.fillRect(0,0,cv.width,cv.height);
+  ctx.save();ctx.translate(ox,oy);
+  ctx.fillStyle="#070b1c";ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle="#13203f";ctx.lineWidth=1;
+  for(let x=0;x<=W;x+=80){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=0;y<=H;y+=80){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+  ctx.strokeStyle="#ff3b3b";ctx.lineWidth=6;ctx.strokeRect(0,0,W,H);
+  foods.forEach(f=>{ctx.beginPath();ctx.fillStyle=f.c;ctx.shadowColor=f.c;ctx.shadowBlur=8;ctx.arc(f.x,f.y,f.r,0,6.28);ctx.fill();ctx.shadowBlur=0;});
+  bots.forEach(b=>{if(!b.dead)drawSnake(b.segs,b.r,b.color,b.name,false);});
+  drawSnake(player.segs,player.r,skinC(S.equipped),player.name,isRain(S.equipped));
+  ctx.restore();drawMini();
+}
+function drawSnake(segs,r,color,name,rainbow){
+  if(!segs||!segs.length)return;
+  for(let i=segs.length-1;i>=0;i--){const s=segs[i];ctx.beginPath();ctx.fillStyle=rainbow?`hsl(${(i*12+performance.now()/10)%360},80%,60%)`:color;ctx.arc(s.x,s.y,r*(i===0?1.25:1),0,6.28);ctx.fill();}
+  const h=segs[0];if(!h)return;
+  ctx.fillStyle="#fff";ctx.beginPath();ctx.arc(h.x-3,h.y-3,2.5,0,6.28);ctx.arc(h.x+3,h.y-3,2.5,0,6.28);ctx.fill();
+  ctx.fillStyle="#cfe0ff";ctx.font="bold 12px Segoe UI";ctx.textAlign="center";ctx.fillText(name,h.x,h.y-r-6);
+}
+function drawMini(){
+  if(!player)return;
+  mctx.clearRect(0,0,150,150);mctx.fillStyle="#000";mctx.fillRect(0,0,150,150);
+  mctx.strokeStyle="#ff3b3b";mctx.strokeRect(0,0,150,150);
+  const sx=150/W,sy=150/H;
+  mctx.fillStyle="#5d9dff80";foods.forEach(f=>mctx.fillRect(f.x*sx,f.y*sy,1,1));
+  mctx.fillStyle="#f87171";bots.forEach(b=>{if(!b.dead)mctx.fillRect(b.x*sx-1,b.y*sy-1,3,3);});
+  mctx.fillStyle="#34d058";mctx.fillRect(player.x*sx-2,player.y*sy-2,4,4);
+}
+function updateLB(){
+  if(!player)return;
+  const list=[{name:player.name,score},...bots.filter(b=>!b.dead).map(b=>({name:b.name,score:Math.floor(b.len*8)}))].sort((a,b)=>b.score-a.score).slice(0,6);
+  document.getElementById('lb').innerHTML='<b style="color:var(--gold)">TRONG TRAN</b>'+list.map((p,i)=>`<div class="row"><span>${i+1}. ${p.name===player.name?'<b style="color:#34d058">'+p.name+'</b>':p.name}</span><b>${p.score}</b></div>`).join('');
+}
+resize();
+</script>
+</body>
+</html>
